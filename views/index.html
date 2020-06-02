@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Welcome</title>
+</head>
+<body>
+    <form action="/login" method="POST">
+        <p>
+            Email:
+            <input type="text" name="email" size="15" maxlength="30" />
+        </p>
+        <p>
+            Password:
+            <input type="password" name="password" size="15" maxlength="30" />
+        </p>
+        <input type="submit" name="submit" value="Create Account or Sign In" />
+    </form>
+    <h6>NOTE: Password can contain lower case (a-z), upper case (A-Z), and numbers (0-9).</h6>
+    <h6>Password can contain the following special characters: !@#$%^&*</h6>
+    <h6>It must also be at least 8 characters.</h6>
+    <h6>Anything else will not give you a JWT and you will have to try again to create account or sign in.</h6>
+</body>
+</html>

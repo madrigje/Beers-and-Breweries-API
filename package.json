@@ -1,0 +1,24 @@
+{
+    "name": "final-madrigje",
+    "version": "1.0.0",
+    "description": "Here lives the final final. Beers and Breweries",
+    "main": "server.js",
+    "dependencies": {
+        "@google-cloud/datastore": "^5.1.0",
+        "body-parser": "^1.19.0",
+        "express": "^4.17.1",
+        "express-jwt": "^5.3.3",
+        "google-gax": "^2.2.0",
+        "jwks-rsa": "^1.8.0",
+        "node-json2html": "^1.4.0",
+        "pug": "^2.0.4",
+        "request": "^2.88.2"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node server.js"
+    },
+    "author": "Jesse Madrigales",
+    "license": "ISC"
+}
