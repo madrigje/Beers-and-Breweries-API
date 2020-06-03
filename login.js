@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
-//const json2html = require('node-json2html');
+const json2html = require('node-json2html');
 const path = require(`path`);
 
 const app = express();

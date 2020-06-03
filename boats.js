@@ -1,7 +1,18 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const json2html = require('node-json2html');
 const router = express.Router();
 const ds = require('./datastore');
+
+let transform = {
+    '<>': 'ul', 'html': [
+        { '<>': 'li', 'title': 'id', 'html': '${id}' },
+        { '<>': 'li', 'title': 'name', 'html': '${name}' },
+        { '<>': 'li', 'title': 'type', 'html': '${type}' },
+        { '<>': 'li', 'title': 'length', 'html': '${length}' },
+        { '<>': 'li', 'title': 'self', 'html': '${self}' }
+    ]
+};
 
 const datastore = ds.datastore;
 
@@ -342,6 +353,7 @@ function delete_boat(id) {
             if (id == includingID[i].id) {
                 return datastore.get(boat_key)
                     .then((boat) => {
+                        console.log()
                         var length = boat[0].loads.length;
                         for (var i = 0; i < length; i++) {
                             arrayOfLoads.push(boat[0].loads[i].id);
@@ -407,7 +419,7 @@ router.get('/:id', function (req, res) {
                 res.status(406).send('{ "Error": "The server can only send JSON or HTML back to you." }');
             } else if (accepts === 'application/json') {
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-                var obj = { id: verify.id, name: verify.name, type: verify.type, length: verify.length, self: self };
+                var obj = { id: verify.id, name: verify.name, type: verify.type, length: verify.length, loads: verify.loads, self: self };
                 res.status(200).json(obj);
             } else if (accepts === 'text/html') {
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
@@ -453,7 +465,8 @@ router.post('/', function (req, res) {
                     return res.status(403).send('{ "Error": "Name requested already exists for another boat." }');
                 }
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + key.id;
-                var obj = { id: key.id, name: req.body.name, type: req.body.type, length: req.body.length, self: self };
+                var loads = [];
+                var obj = { id: key.id, name: req.body.name, type: req.body.type, length: req.body.length, loads: loads, self: self };
                 res.location(self);
                 res.status(201).json(obj);
             });
@@ -648,6 +661,48 @@ router.delete('/:id', function (req, res) {
         res.status(204).end()
     })
 });
+
+/* ------------- IMPROPER HTTP VERBS ------------- */
+router.put('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.patch('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.delete('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.post('/:id', function (req, res) {
+    res.set('Accept', 'GET, PUT, PATCH, DELETE');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.get('/:boat_id/loads/:load_id', function (req, res) {
+    res.set('Accept', 'DELETE, PUT');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.post('/:boat_id/loads/:load_id', function (req, res) {
+    res.set('Accept', 'DELETE, PUT');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.patch('/:boat_id/loads/:load_id', function (req, res) {
+    res.set('Accept', 'DELETE, PUT');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.get('/:boat_id/loads/:load_id', function (req, res) {
+    res.set('Accept', 'DELETE, PUT');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+/* ------------- IMPROPER HTTP VERBS ------------- */
 
 /* ------------- End Controller Functions ------------- */
 

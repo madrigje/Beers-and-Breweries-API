@@ -12,8 +12,12 @@ module.exports.fromDatastore = function fromDatastore(item){
 }
 module.exports.addSelf = function addSelf(item){
     item.self = this + item.id;
+    if (item.loads === undefined) {
+        item.loads = [];
+    }
     return item;
 }
+
 module.exports.addSelfLoad = function addSelfLoad(item) {
     item.self = this + item.id;
     return item;
