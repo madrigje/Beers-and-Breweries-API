@@ -47,13 +47,14 @@ module.exports.validateName = function validateName(name) {
     }
 }
 
-module.exports.validateType = function validateType(type) {
+// ACTION: Would like to revamp this. Maybe base it off of state?!
+module.exports.validateCity = function validateCity(city) {
     //I've allowed spaces and absolutely no numbers
     //The passed in string must be between 2 and 33 characters. 
     //TODO: Document that it must contain two chars. 
     var letters = /^[A-Za-z\s]+$/;
     if(type.match(letters)) {
-        if(type.length > 33 || type.length < 2) {
+        if(type.city > 33 || type.city < 2) {
             return false;
         }
         return true;
@@ -62,18 +63,23 @@ module.exports.validateType = function validateType(type) {
     }
 }
 
-module.exports.validateLength = function validateLength(length) {
-    //All characters must be numbers
-    //No spaces allowed
-    //Must be between 1 and 9999
-    var stringLength = length.toString()
-    var numbers = /^\d+$/;
-    if(stringLength.match(numbers)) {
-        if(stringLength.length > 4 || stringLength.length === 0) {
-            return false;
-        }
-        return true;
-    } else {
-        return false;
-    }
+module.exports.validateState = function validateState(states) {
+    // The state property must match one of the keys in state_codes below. 
+    let state_codes = { 'Mississippi': 'MS', 'Oklahoma': 'OK', 
+        'Delaware': 'DE', 'Minnesota': 'MN', 'Illinois': 'IL', 'Arkansas': 'AR', 
+        'New Mexico': 'NM', 'Indiana': 'IN', 'Maryland': 'MD', 'Louisiana': 'LA', 
+        'Idaho': 'ID', 'Wyoming': 'WY', 'Tennessee': 'TN', 'Arizona': 'AZ', 
+        'Iowa': 'IA', 'Michigan': 'MI', 'Kansas': 'KS', 'Utah': 'UT', 
+        'Virginia': 'VA', 'Oregon': 'OR', 'Connecticut': 'CT', 'Montana': 'MT', 
+        'California': 'CA', 'Massachusetts': 'MA', 'West Virginia': 'WV', 
+        'South Carolina': 'SC', 'New Hampshire': 'NH', 'Wisconsin': 'WI',
+        'Vermont': 'VT', 'Georgia': 'GA', 'North Dakota': 'ND', 
+        'Pennsylvania': 'PA', 'Florida': 'FL', 'Alaska': 'AK', 'Kentucky': 'KY', 
+        'Hawaii': 'HI', 'Nebraska': 'NE', 'Missouri': 'MO', 'Ohio': 'OH', 
+        'Alabama': 'AL', 'Rhode Island': 'RI', 'South Dakota': 'SD', 
+        'Colorado': 'CO', 'New Jersey': 'NJ', 'Washington': 'WA', 
+        'North Carolina': 'NC', 'New York': 'NY', 'Texas': 'TX', 
+        'Nevada': 'NV', 'Maine': 'ME' }
+
+    return state_codes.hasOwnProperty(states);
 }

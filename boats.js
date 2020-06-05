@@ -4,31 +4,32 @@ const json2html = require('node-json2html');
 const router = express.Router();
 const ds = require('./datastore');
 
+// ACTION: Should add beer capabilites OR just remove this. 
 let transform = {
     '<>': 'ul', 'html': [
         { '<>': 'li', 'title': 'id', 'html': '${id}' },
         { '<>': 'li', 'title': 'name', 'html': '${name}' },
-        { '<>': 'li', 'title': 'type', 'html': '${type}' },
-        { '<>': 'li', 'title': 'length', 'html': '${length}' },
+        { '<>': 'li', 'title': 'city', 'html': '${city}' },
+        { '<>': 'li', 'title': 'state', 'html': '${state}' },
         { '<>': 'li', 'title': 'self', 'html': '${self}' }
     ]
 };
 
 const datastore = ds.datastore;
 
-const BOAT = "boat";
+const BREWERY = "brewery";
 const LOAD = "load";
 
 router.use(bodyParser.json());
 
-/* ------------- Begin Boat Model Functions ------------- */
+/* ------------- Begin Brewery Model Functions ------------- */
 
 // UPDATED
-function post_boat(name, type, length) {
-    var key = datastore.key(BOAT);
-    const q = datastore.createQuery(BOAT);
-    var loads = [];
-    const new_boat = { "name": name, "type": type, "length": length, "loads": loads };
+function post_brewery(name, city, state) {
+    var key = datastore.key(BREWERY);
+    const q = datastore.createQuery(BREWERY);
+    var beers = [];
+    const new_brewery = { "name": name, "city": city, "state": state, "beers": beers };
 
     return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
@@ -39,22 +40,22 @@ function post_boat(name, type, length) {
                 return verify;
             }
         }
-        return datastore.save({ "key": key, "data": new_boat }).then(() => {
+        return datastore.save({ "key": key, "data": new_brewery }).then(() => {
             return key;
         });
     });
 }
 
 // NO CHANGES YET
-function get_boats(req) {
-    var q = datastore.createQuery(BOAT).limit(3);
+function get_breweries(req) {
+    var q = datastore.createQuery(BREWERIES).limit(5);
     var results = {};
     if (Object.keys(req.query).includes("cursor")) {
         q = q.start(req.query.cursor);
     }
 
     return datastore.runQuery(q).then((entities) => {
-        results.boats = entities[0].map(ds.fromDatastore);
+        results.breweries = entities[0].map(ds.fromDatastore);
         if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
             var end = encodeURIComponent(entities[1].endCursor);
             results.next = req.protocol + "://" + req.get("host") + req.baseUrl + "?cursor=" + end;
@@ -64,9 +65,9 @@ function get_boats(req) {
 }
 
 // NO CHANGES
-function get_boat(id) {
-    const key = datastore.key([BOAT, parseInt(id, 10)]);
-    const q = datastore.createQuery(BOAT);
+function get_brewery(id) {
+    const key = datastore.key([BREWERY, parseInt(id, 10)]);
+    const q = datastore.createQuery(BREWERY);
 
     return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
@@ -85,10 +86,10 @@ function get_boat(id) {
     });
 }
 
-// ADDED AND UPDATED
-function edit_boat(id, name, type, length) {
-    const key = datastore.key([BOAT, parseInt(id, 10)]);
-    const q = datastore.createQuery(BOAT);
+// TODO: Must be able to transfer current loads
+function edit_brewery(id, name, city, state) {
+    const key = datastore.key([BREWERY, parseInt(id, 10)]);
+    const q = datastore.createQuery(BREWERY);
 
     return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
@@ -103,7 +104,7 @@ function edit_boat(id, name, type, length) {
             }
 
             if (verify !== 0) {
-                //Boat already exists
+                //Brewery already exists
                 return 1;
             }
 
@@ -114,20 +115,20 @@ function edit_boat(id, name, type, length) {
                     if (id === includingID[j].id) {
                         verify = 0;
                         return datastore.get(key)
-                            .then((boat) => {
+                            .then((brewery) => {
                                 if (name === 0) {
-                                    name = boat[0].name;
+                                    name = brewery[0].name;
                                 }
-                                if (type === 0) {
-                                    type = boat[0].type
+                                if (city === 0) {
+                                    city = brewery[0].city
                                 }
-                                if (length === 0) {
-                                    length = boat[0].length
+                                if (state === 0) {
+                                    state = brewery[0].state
                                 }
-                                const new_boat = { "name": name, "type": type, "length": length };
-                                return datastore.save({ "key": key, "data": new_boat }).
+                                const new_brewery = { "name": name, "city": city, "state": state };
+                                return datastore.save({ "key": key, "data": new_brewery }).
                                     then(() => {
-                                        return new_boat;
+                                        return new_brewery;
                                     })
                             });
                     }
@@ -139,20 +140,20 @@ function edit_boat(id, name, type, length) {
             if (id == includingID[i].id) {
                 verify = 0;
                 return datastore.get(key)
-                    .then((boat) => {
+                    .then((brewery) => {
                         if (name === 0) {
-                            name = boat[0].name;
+                            name = brewery[0].name;
                         }
-                        if (type === 0) {
-                            type = boat[0].type
+                        if (city === 0) {
+                            city = brewery[0].city
                         }
-                        if (length === 0) {
-                            length = boat[0].length
+                        if (state === 0) {
+                            state = brewery[0].state
                         }
-                        const new_boat = { "name": name, "type": type, "length": length };
-                        return datastore.save({ "key": key, "data": new_boat }).
+                        const new_brewery = { "name": name, "city": city, "state": state };
+                        return datastore.save({ "key": key, "data": new_brewery }).
                             then(() => {
-                                return new_boat;
+                                return new_brewery;
                             })
                     });
             }
@@ -161,22 +162,22 @@ function edit_boat(id, name, type, length) {
     });
 }
 
-function put_load_in_boat(boat_id, load_id, req) {
+function add_beer_to_brewery(brew_id, load_id, req) {
     // Verify starts at 404 error
     var verify = 1;
-    const b = datastore.createQuery(BOAT);
+    const b = datastore.createQuery(BREWERY);
     const s = datastore.createQuery(LOAD);
-    var boatName;
+    var brewName;
 
     return datastore.runQuery(b).then((entities) => {
 
 
-        const boatIncludingID = entities[0].map(ds.fromDatastore)
+        const brewIncludingID = entities[0].map(ds.fromDatastore)
         var i;
-        for (i = 0; i < boatIncludingID.length; i++) {
-            if (boat_id == boatIncludingID[i].id) {
+        for (i = 0; i < brewIncludingID.length; i++) {
+            if (brew_id == brewIncludingID[i].id) {
                 verify = 3;
-                boatName = boatIncludingID[i].name;
+                brewName = brewIncludingID[i].name;
             }
         }
 
@@ -186,11 +187,11 @@ function put_load_in_boat(boat_id, load_id, req) {
             var i;
 
             if (verify === 1) {
-                //boat does not exist; return 1
+                //Brewery does not exist; return 1
                 verify = 1;
                 return verify;
             }
-            // Reset this back to one. Already confirmed boat exists
+            // Reset this back to one. Already confirmed brewery exists
             verify = 1;
             //Verify that the load exists
             for (i = 0; i < includingID.length; i++) {
@@ -202,7 +203,7 @@ function put_load_in_boat(boat_id, load_id, req) {
             // Well, we now know that the slip doesnt exist
             if (verify === 1) { return verify; }
 
-            // Find out if this load is on another boat.
+            // Find out if this load is on another brewery.
             for (i = 0; i < includingID.length; i++) {
                 if (includingID[i].id === load_id) {
                     if (includingID[i].carrier[0] === undefined) {
@@ -218,21 +219,22 @@ function put_load_in_boat(boat_id, load_id, req) {
             var self;
             for (i = 0; i < includingID.length; i++) {
                 if (load_id == includingID[i].id) {
-                    self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + boat_id;
+                    self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + brew_id;
                     results.self = self;
-                    results.name = boatName;
+                    results.name = brewName;
                 }
             }
 
             var loadResults = {};
             var selfLoads = req.protocol + '://' + req.get("host") + '/loads/' + load_id;
             loadResults.self = selfLoads;
-
+            
+            // ACTION: Check for name change here. 
             for (i = 0; i < includingID.length; i++) {
                 if (load_id == includingID[i].id) {
-                    self = req.protocol + '://' + req.get("host") + '/boats' + '/' + boat_id;
+                    self = req.protocol + '://' + req.get("host") + '/breweries' + '/' + brew_id;
                     results.self = self;
-                    results.name = boatName;
+                    results.name = brewName;
                     loadResults.content = includingID[i].content;
                     loadResults.weight = includingID[i].weight;
                     loadResults.delivery_date = includingID[i].delivery_date;
@@ -240,24 +242,24 @@ function put_load_in_boat(boat_id, load_id, req) {
             }
 
             const load_key = datastore.key([LOAD, parseInt(load_id, 10)]);
-            const boat_key = datastore.key([BOAT, parseInt(boat_id, 10)]);
+            const brew_key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
             return datastore.get(load_key)
                 .then((load) => {
                     if (typeof (load[0].carrier) === 'undefined') {
                         load[0].carrier = [];
                     }
-                    results.id = boat_id;
+                    results.id = brew_id;
                     load[0].carrier.push(results);
                     return datastore.save({ "key": load_key, "data": load[0] })
                         .then(() => {
-                            return datastore.get(boat_key)
-                                .then((boat) => {
-                                    if (typeof (boat[0].loads) === 'undefined') {
-                                        boat[0].loads = [];
+                            return datastore.get(brew_key)
+                                .then((brew) => {
+                                    if (typeof (brew[0].loads) === 'undefined') {
+                                        brew[0].loads = [];
                                     }
                                     loadResults.id = load_id;
-                                    boat[0].loads.push(loadResults);
-                                    return datastore.save({ "key": boat_key, "data": boat[0] });
+                                    brew[0].loads.push(loadResults);
+                                    return datastore.save({ "key": brew_key, "data": brew[0] });
                                 })
                         })
                 })
@@ -265,36 +267,36 @@ function put_load_in_boat(boat_id, load_id, req) {
     });
 }
 
-function delete_load_off_boat(boat_id, load_id, req) {
+function remove_beer_from_brewery(brew_id, load_id, req) {
     // Verify starts at 404 error
     var verify = 1;
-    const b = datastore.createQuery(BOAT);
+    const b = datastore.createQuery(BREW);
     const s = datastore.createQuery(LOAD);
 
     return datastore.runQuery(b).then((entities) => {
 
-        const boatIncludingID = entities[0].map(ds.fromDatastore)
+        const brewIncludingID = entities[0].map(ds.fromDatastore)
         var i;
-        //Verify boat is valid.
-        for (i = 0; i < boatIncludingID.length; i++) {
-            if (boat_id == boatIncludingID[i].id) {
+        //Verify brewery is valid.
+        for (i = 0; i < brewIncludingID.length; i++) {
+            if (brew_id == brewIncludingID[i].id) {
                 verify = 3;
             }
         }
 
         if (verify === 1) {
-            //boat does not exist; return 1
+            //brewery does not exist; return 1
             verify = 1;
             return verify;
         }
 
         verify = 1;
 
-        for (i = 0; i < boatIncludingID.length; i++) {
-            if (boat_id === boatIncludingID[i].id) {
-                //verify that load is on boat
-                for (var j = 0; j < boatIncludingID[i].loads.length; j++) {
-                    if (boatIncludingID[i].loads[j].id === load_id) {
+        for (i = 0; i < brewIncludingID.length; i++) {
+            if (brew_id === brewIncludingID[i].id) {
+                //verify that load is on brewery
+                for (var j = 0; j < brewIncludingID[i].loads.length; j++) {
+                    if (brewIncludingID[i].loads[j].id === load_id) {
                         verify = 3
                     }
                 }
@@ -302,27 +304,27 @@ function delete_load_off_boat(boat_id, load_id, req) {
         }
 
         if (verify === 1) {
-            //load is not on the boat; return 1
+            //load is not on the brewery; return 1
             verify = 1;
             return verify;
         }
 
-        const boat_key = datastore.key([BOAT, parseInt(boat_id, 10)]);
+        const brew_key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
         const load_key = datastore.key([LOAD, parseInt(load_id, 10)]);
 
-        return datastore.get(boat_key)
-            .then((boat) => {
+        return datastore.get(brew_key)
+            .then((brew) => {
                 var spliceValue;
-                var length = boat[0].loads.length;
+                var length = brew[0].loads.length;
                 for (var i = 0; i < length; i++) {
-                    if (boat[0].loads[i].id === load_id) {
+                    if (brew[0].loads[i].id === load_id) {
                         spliceValue = i;
                     }
                 }
                 var spliceValue2 = + 1;
-                boat[0].loads.splice(spliceValue, spliceValue2);
+                brew[0].loads.splice(spliceValue, spliceValue2);
 
-                return datastore.save({ "key": boat_key, "data": boat[0] })
+                return datastore.save({ "key": brew_key, "data": brew[0] })
                     .then(() => {
                         return datastore.get(load_key)
                             .then((load) => {
@@ -338,9 +340,9 @@ function delete_load_off_boat(boat_id, load_id, req) {
 }
 
 // NO CHANGES
-function delete_boat(id) {
-    const boat_key = datastore.key([BOAT, parseInt(id, 10)]);
-    const q = datastore.createQuery(BOAT);
+function delete_brewery(id) {
+    const brew_key = datastore.key([BREWERY, parseInt(id, 10)]);
+    const q = datastore.createQuery(BREWERY);
     const s = datastore.createQuery(LOAD);
 
     var arrayOfLoads = [];
@@ -351,14 +353,14 @@ function delete_boat(id) {
         var verify = 1;
         for (i = 0; i < includingID.length; i++) {
             if (id == includingID[i].id) {
-                return datastore.get(boat_key)
-                    .then((boat) => {
+                return datastore.get(brew_key)
+                    .then((brew) => {
                         console.log()
-                        var length = boat[0].loads.length;
+                        var length = brew[0].loads.length;
                         for (var i = 0; i < length; i++) {
-                            arrayOfLoads.push(boat[0].loads[i].id);
+                            arrayOfLoads.push(brew[0].loads[i].id);
                         }
-                        datastore.delete(boat_key);
+                        datastore.delete(brew_key);
 
                         return datastore.runQuery(s).then((entities) => {
                             for (var i = 0; i < arrayOfLoads.length; i++) {
@@ -377,30 +379,32 @@ function delete_boat(id) {
     });
 }
 
-function get_boat_loads(boat_id) {
-    const key = datastore.key([BOAT, parseInt(boat_id, 10)]);
+function get_brewery_beers(brew_id) {
+    const key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
     return datastore.get(key)
-        .then((boat) => {
-            return boat[0].loads;
+        .then((brew) => {
+            return brew[0].loads;
         })
 }
 
-/* ------------- End Model Functions ------------- */
+/* ------------- End Brewery Model Functions ------------- */
 
 /* ------------- Begin Controller Functions ------------- */
 
 // NO CHANGES YET
 router.get('/', function (req, res) {
-    get_boats(req)
-        .then((boats) => {
+    // Change breweries here. 
+    get_breweries(req)
+        .then((breweries) => {
+            // ACTION: breweries.breweries might not work here
             var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/';
-            boats.boats.map(ds.addSelf, self);
-            res.status(200).json(boats);
+            breweries.breweries.map(ds.addSelf, self);
+            res.status(200).json(breweries);
         });
 });
 
-router.get('/:boat_id/loads', function (req, res) {
-    get_boat_loads(req.params.boat_id)
+router.get('/:brew_id/loads', function (req, res) {
+    get_brewery_beers(req.params.brew_id)
         .then((loads) => {
             res.status(200).json(loads);
         });
@@ -408,22 +412,23 @@ router.get('/:boat_id/loads', function (req, res) {
 
 // UPDATED
 router.get('/:id', function (req, res) {
-    get_boat(req.params.id)
+    get_brewery(req.params.id)
         .then((verify) => {
             if (verify === 1) {
                 return res.status(404).send(
-                    '{ "Error": "No boat with this boat_id exists" }');
+                    '{ "Error": "No brewery with this brewery_id exists" }');
             }
             const accepts = req.accepts(['application/json', 'text/html']);
             if (!accepts) {
                 res.status(406).send('{ "Error": "The server can only send JSON or HTML back to you." }');
             } else if (accepts === 'application/json') {
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-                var obj = { id: verify.id, name: verify.name, type: verify.type, length: verify.length, loads: verify.loads, self: self };
+                var obj = { id: verify.id, name: verify.name, city: verify.city, state: verify.state, beers: verify.beers, self: self };
                 res.status(200).json(obj);
             } else if (accepts === 'text/html') {
+                // ACTION: Must add beers here if I want to keep this.
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-                var obj = { id: verify.id, name: verify.name, type: verify.type, length: verify.length, self: self };
+                var obj = { id: verify.id, name: verify.name, city: verify.city, state: verify.state, self: self };
                 const html = json2html.transform([obj], transform);
                 res.status(200).send(html);
             }
@@ -434,7 +439,7 @@ router.get('/:id', function (req, res) {
 router.post('/', function (req, res) {
 
     if (Object.keys(req.body).length > 3) {
-        return res.status(400).send('{ "Error": "Name, type and length are the only allowed attributes." }');
+        return res.status(400).send('{ "Error": "Name, city and state are the only allowed attributes." }');
     }
     if ((req.get('content-type') !== 'application/json')) {
         return res.status(415).send(
@@ -445,28 +450,28 @@ router.post('/', function (req, res) {
         return res.status(406).send(
             '{ "Error": "The server can only send JSON back to you." }');
     }
-    if (req.body.name === undefined || req.body.type === undefined || req.body.length === undefined) {
+    if (req.body.name === undefined || req.body.city === undefined || req.body.state === undefined) {
         return res.status(400).send(
             '{ "Error": "The request object is missing at least one of the required attributes." }');
     }
 
     var valName = ds.validateName(req.body.name);
-    var valType = ds.validateType(req.body.type);
-    var valLength = ds.validateLength(req.body.length);
+    var valCity = ds.validateCity(req.body.city);
+    var valState = ds.validateState(req.body.state);
 
-    if (!valName || !valType || !valLength) {
+    if (!valName || !valCity || !valState) {
         return res.status(400).send(
             '{ "Error": "One or more of the requested attributes are invalid." }');
     } else {
 
-        post_boat(req.body.name, req.body.type, req.body.length)
+        post_brewery(req.body.name, req.body.city, req.body.state)
             .then((key) => {
                 if (key === 1) {
-                    return res.status(403).send('{ "Error": "Name requested already exists for another boat." }');
+                    return res.status(403).send('{ "Error": "Name requested already exists for another brewery." }');
                 }
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + key.id;
-                var loads = [];
-                var obj = { id: key.id, name: req.body.name, type: req.body.type, length: req.body.length, loads: loads, self: self };
+                var beers = [];
+                var obj = { id: key.id, name: req.body.name, city: req.body.city, state: req.body.state, beers: beers, self: self };
                 res.location(self);
                 res.status(201).json(obj);
             });
@@ -477,29 +482,30 @@ router.post('/', function (req, res) {
 router.patch('/:id', function (req, res) {
 
     var valName = true;
-    var valType = true;
-    var valLength = true;
+    var valCity = true;
+    var valState = true;
 
     var id = req.body.id;
     var name = req.body.name;
-    var type = req.body.type;
-    var length = req.body.length;
+    var city = req.body.city;
+    var state = req.body.state;
 
     if (name === undefined) {
         name = 0;
     }
-    if (type === undefined) {
-        type = 0;
+    if (city === undefined) {
+        city = 0;
     }
-    if (length === undefined) {
-        length = 0;
+    if (state === undefined) {
+        state = 0;
     }
     if (id !== undefined) {
         return res.status(400).send(
             '{ "Error": "ID cannot be manipulated." }');
     }
+    // Action: Ensure this error code is correct (PROBABLY NOT)
     if (Object.keys(req.body).length > 3) {
-        return res.status(400).send('{ "Error": "Name requested already exists for another boat" }');
+        return res.status(400).send('{ "Error": "Name requested already exists for another brewery" }');
     }
 
     if ((req.get('content-type') !== 'application/json')) {
@@ -513,54 +519,55 @@ router.patch('/:id', function (req, res) {
     }
 
     if (req.body.name === undefined) {
-        if (req.body.type === undefined) {
-            if (req.body.length === undefined) {
+        if (req.body.city === undefined) {
+            if (req.body.state === undefined) {
                 return res.status(400).send(
-                    '{ "Error": "Request object must contain at least one of the three boat attributes."}');
+                    '{ "Error": "Request object must contain at least one of the three brewery attributes."}');
             } else {
-                valLength = ds.validateLength(req.body.length);
+                valState = ds.validateState(req.body.state);
             }
         } else {
-            valType = ds.validateType(req.body.type);
-            if (req.body.length !== undefined) {
-                valLength = ds.validateLength(req.body.length);
+            valCity = ds.validateCity(req.body.city);
+            if (req.body.state !== undefined) {
+                valState = ds.validateState(req.body.state);
             }
         }
-    } else if (req.body.type === undefined) {
-        if (req.body.length === undefined) {
+    } else if (req.body.city === undefined) {
+        if (req.body.state === undefined) {
             valName = ds.validateName(req.body.name);
         } else {
             valName = ds.validateName(req.body.name);
-            valLength = ds.validateLength(req.body.length);
+            valState = ds.validateState(req.body.state);
         }
-    } else if (req.body.length === undefined) {
+    } else if (req.body.state === undefined) {
         valName = ds.validateName(req.body.name);
-        valType = ds.validateType(req.body.type);
+        valCity = ds.validateCity(req.body.city);
     } else {
         valName = ds.validateName(req.body.name);
-        valType = ds.validateType(req.body.type);
-        valLength = ds.validateLength(req.body.length);
+        valCity = ds.validateCity(req.body.city);
+        valState = ds.validateState(req.body.state);
     }
 
 
-    if (!valName || !valType || !valLength) {
+    if (!valName || !valState || !valCity) {
         return res.status(400).send(
             '{ "Error": "One or more of the requested attributes are invalid." }');
     }
 
 
-    edit_boat(req.params.id, name, type, length)
+    edit_brewery(req.params.id, name, city, state)
         .then(verify => {
             if (verify === 1) {
                 return res.status(404).send(
-                    '{ "Error": "No boat with this boat_id exists"}');
+                    '{ "Error": "No brewery with this brewery_id exists"}');
             }
             if (verify === 2) {
                 return res.status(403).send(
-                    '{ "Error": "Name requested already exists for another boat." }');
+                    '{ "Error": "Name requested already exists for another brewery." }');
             }
+            //ACTION: Verify beers is good in this context. 
             var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-            var obj = { id: req.params.id, name: verify.name, type: verify.type, length: verify.length, self: self };
+            var obj = { id: req.params.id, name: verify.name, city: verify.city, state: verify.state, beers: verify.beers, self: self };
             res.status(201).json(obj);
         });
 });
@@ -570,8 +577,8 @@ router.put('/:id', function (req, res) {
 
     var id = req.body.id;
     var name = req.body.name;
-    var type = req.body.type;
-    var length = req.body.length;
+    var city = req.body.city;
+    var state = req.body.state;
 
     if ((req.get('content-type') !== 'application/json')) {
         return res.status(415).send(
@@ -588,32 +595,32 @@ router.put('/:id', function (req, res) {
             '{ "Error": "ID cannot be manipulated." }');
     }
 
-    if (name === undefined || type === undefined || length === undefined) {
+    if (name === undefined || city === undefined || state === undefined) {
         return res.status(400).send(
             '{ "Error": "The request object is missing at least one of the required attributes" }');
     }
 
     if (Object.keys(req.body).length > 3) {
-        return res.status(400).send('{ "Error": "Name, type and length are the only allowed attributes." }');
+        return res.status(400).send('{ "Error": "Name, city and state are the only allowed attributes." }');
     }
 
     var valName = ds.validateName(req.body.name);
-    var valType = ds.validateType(req.body.type);
-    var valLength = ds.validateLength(req.body.length);
+    var valCity = ds.validateCity(req.body.city);
+    var valState = ds.validateState(req.body.state);
 
-    if (!valName || !valType || !valLength) {
+    if (!valName || !valCity || !valState) {
         return res.status(400).send(
             '{ "Error": "One or more of the requested attributes are invalid." }');
     } else {
-        edit_boat(req.params.id, req.body.name, req.body.type, req.body.length)
+        edit_brewery(req.params.id, req.body.name, req.body.city, req.body.state)
             .then(verify => {
                 if (verify === 1) {
                     return res.status(404).send(
-                        '{ "Error": "No boat with this boat_id exists"}');
+                        '{ "Error": "No brewery with this brewery_id exists"}');
                 }
                 if (verify === 2) {
                     return res.status(403).send(
-                        '{ "Error": "Name requested already exists for another boat." }');
+                        '{ "Error": "Name requested already exists for another brewery." }');
                 }
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
                 res.location(self);
@@ -623,29 +630,29 @@ router.put('/:id', function (req, res) {
     }
 });
 
-router.put('/:boat_id/loads/:load_id', function (req, res) {
-    put_load_in_boat(req.params.boat_id, req.params.load_id, req).then(verify => {
+router.put('/:brew_id/loads/:load_id', function (req, res) {
+    add_beer_to_brewery(req.params.brew_id, req.params.load_id, req).then(verify => {
         if (verify === 0) {
             res.status(403).send(
-                '{ "Error": "Failure to load boat. This load is already on another boat." }');
+                '{ "Error": "Failure to load brewery. This beer is already produced at another brewery." }');
         }
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error": "The specified boat and/or load do not exist" }');
+                '{ "Error": "The specified brewery and/or beer do not exist" }');
         }
         if (verify === 2) {
             res.status(403).send(
-                '{ "Error": "Failure to load boat. This load is already on another boat." }');
+                '{ "Error": "Failure to load brewery. This beer is already produced at another brewery." }');
         }
         res.status(204).end();
     });
 });
 
-router.delete('/:boat_id/loads/:load_id', function (req, res) {
-    delete_load_off_boat(req.params.boat_id, req.params.load_id).then(verify => {
+router.delete('/:brew_id/loads/:load_id', function (req, res) {
+    remove_beer_from_brewery(req.params.brew_id, req.params.load_id).then(verify => {
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error": "No load with this load_id is at the boat with this boat_id or boat with boat_id does not exist"}');
+                '{ "Error": "No beer with this beer_id is produced at the brewery with this brewery_id or brewery with brewery_id does not exist"}');
         }
         res.status(204).end();
     });
@@ -653,10 +660,10 @@ router.delete('/:boat_id/loads/:load_id', function (req, res) {
 
 // NO CHANGES
 router.delete('/:id', function (req, res) {
-    delete_boat(req.params.id).then((verify) => {
+    delete_brewery(req.params.id).then((verify) => {
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error": "No boat with this boat_id exists" }');
+                '{ "Error": "No brewery with this brewery_id exists" }');
         }
         res.status(204).end()
     })
@@ -683,22 +690,22 @@ router.post('/:id', function (req, res) {
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.get('/:boat_id/loads/:load_id', function (req, res) {
+router.get('/:brew_id/loads/:load_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.post('/:boat_id/loads/:load_id', function (req, res) {
+router.post('/:brew_id/loads/:load_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.patch('/:boat_id/loads/:load_id', function (req, res) {
+router.patch('/:brew_id/loads/:load_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.get('/:boat_id/loads/:load_id', function (req, res) {
+router.get('/:brew_id/loads/:load_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
