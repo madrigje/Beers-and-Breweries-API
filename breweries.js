@@ -18,7 +18,7 @@ let transform = {
 const datastore = ds.datastore;
 
 const BREWERY = "brewery";
-const LOAD = "load";
+const BEER = "beer";
 
 router.use(bodyParser.json());
 
@@ -48,7 +48,7 @@ function post_brewery(name, city, state) {
 
 // NO CHANGES YET
 function get_breweries(req) {
-    var q = datastore.createQuery(BREWERIES).limit(5);
+    var q = datastore.createQuery(BREWERY).limit(5);
     var results = {};
     if (Object.keys(req.query).includes("cursor")) {
         q = q.start(req.query.cursor);
@@ -60,6 +60,7 @@ function get_breweries(req) {
             var end = encodeURIComponent(entities[1].endCursor);
             results.next = req.protocol + "://" + req.get("host") + req.baseUrl + "?cursor=" + end;
         }
+        results.total_count = entities[0].length;
         return results;
     });
 }
@@ -86,7 +87,7 @@ function get_brewery(id) {
     });
 }
 
-// TODO: Must be able to transfer current loads
+// TODO: Must be able to transfer current beers
 function edit_brewery(id, name, city, state) {
     const key = datastore.key([BREWERY, parseInt(id, 10)]);
     const q = datastore.createQuery(BREWERY);
@@ -125,7 +126,9 @@ function edit_brewery(id, name, city, state) {
                                 if (state === 0) {
                                     state = brewery[0].state
                                 }
-                                const new_brewery = { "name": name, "city": city, "state": state };
+                                beers = brewery[0].beers;
+                                console.log('beers: ' + brewery[0].beers);
+                                const new_brewery = { "name": name, "city": city, "state": state, "beers": beers };
                                 return datastore.save({ "key": key, "data": new_brewery }).
                                     then(() => {
                                         return new_brewery;
@@ -150,7 +153,9 @@ function edit_brewery(id, name, city, state) {
                         if (state === 0) {
                             state = brewery[0].state
                         }
-                        const new_brewery = { "name": name, "city": city, "state": state };
+                        beers = brewery[0].beers;
+                        console.log('next beers: ' + brewery[0].beers);
+                        const new_brewery = { "name": name, "city": city, "state": state, "beers": beers };
                         return datastore.save({ "key": key, "data": new_brewery }).
                             then(() => {
                                 return new_brewery;
@@ -162,11 +167,11 @@ function edit_brewery(id, name, city, state) {
     });
 }
 
-function add_beer_to_brewery(brew_id, load_id, req) {
+function add_beer_to_brewery(brew_id, beer_id, req) {
     // Verify starts at 404 error
     var verify = 1;
     const b = datastore.createQuery(BREWERY);
-    const s = datastore.createQuery(LOAD);
+    const s = datastore.createQuery(BEER);
     var brewName;
 
     return datastore.runQuery(b).then((entities) => {
@@ -193,9 +198,9 @@ function add_beer_to_brewery(brew_id, load_id, req) {
             }
             // Reset this back to one. Already confirmed brewery exists
             verify = 1;
-            //Verify that the load exists
+            //Verify that the beer exists
             for (i = 0; i < includingID.length; i++) {
-                if (load_id == includingID[i].id) {
+                if (beer_id == includingID[i].id) {
                     verify = 3;
                 }
             }
@@ -203,9 +208,9 @@ function add_beer_to_brewery(brew_id, load_id, req) {
             // Well, we now know that the slip doesnt exist
             if (verify === 1) { return verify; }
 
-            // Find out if this load is on another brewery.
+            // Find out if this beer is on another brewery.
             for (i = 0; i < includingID.length; i++) {
-                if (includingID[i].id === load_id) {
+                if (includingID[i].id === beer_id) {
                     if (includingID[i].carrier[0] === undefined) {
                         break;
                     } else {
@@ -218,47 +223,47 @@ function add_beer_to_brewery(brew_id, load_id, req) {
             var results = {};
             var self;
             for (i = 0; i < includingID.length; i++) {
-                if (load_id == includingID[i].id) {
+                if (beer_id == includingID[i].id) {
                     self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + brew_id;
                     results.self = self;
                     results.name = brewName;
                 }
             }
 
-            var loadResults = {};
-            var selfLoads = req.protocol + '://' + req.get("host") + '/loads/' + load_id;
-            loadResults.self = selfLoads;
+            var beerResults = {};
+            var selfBeers = req.protocol + '://' + req.get("host") + '/beers/' + beer_id;
+            beerResults.self = selfBeers;
             
             // ACTION: Check for name change here. 
             for (i = 0; i < includingID.length; i++) {
-                if (load_id == includingID[i].id) {
-                    self = req.protocol + '://' + req.get("host") + '/breweries' + '/' + brew_id;
+                if (bber_id == includingID[i].id) {
+                    self = req.protocol + '://' + req.get("host") + '/breweries/' + brew_id;
                     results.self = self;
                     results.name = brewName;
-                    loadResults.content = includingID[i].content;
-                    loadResults.weight = includingID[i].weight;
-                    loadResults.delivery_date = includingID[i].delivery_date;
+                    beerResults.beers = includingID[i].beers;
+                    beerResults.city = includingID[i].city;
+                    beerResults.state = includingID[i].state;
                 }
             }
 
-            const load_key = datastore.key([LOAD, parseInt(load_id, 10)]);
+            const beer_key = datastore.key([BEER, parseInt(beer_id, 10)]);
             const brew_key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
-            return datastore.get(load_key)
-                .then((load) => {
-                    if (typeof (load[0].carrier) === 'undefined') {
-                        load[0].carrier = [];
+            return datastore.get(beer_key)
+                .then((beer) => {
+                    if (typeof (beer[0].brewery) === 'undefined') {
+                        beer[0].brewery = [];
                     }
                     results.id = brew_id;
-                    load[0].carrier.push(results);
-                    return datastore.save({ "key": load_key, "data": load[0] })
+                    beer[0].carrier.push(results);
+                    return datastore.save({ "key": beer_key, "data": beer[0] })
                         .then(() => {
                             return datastore.get(brew_key)
                                 .then((brew) => {
-                                    if (typeof (brew[0].loads) === 'undefined') {
-                                        brew[0].loads = [];
+                                    if (typeof (brew[0].beers) === 'undefined') {
+                                        brew[0].beers = [];
                                     }
-                                    loadResults.id = load_id;
-                                    brew[0].loads.push(loadResults);
+                                    beerResults.id = beer_id;
+                                    brew[0].beers.push(beerResults);
                                     return datastore.save({ "key": brew_key, "data": brew[0] });
                                 })
                         })
@@ -267,11 +272,11 @@ function add_beer_to_brewery(brew_id, load_id, req) {
     });
 }
 
-function remove_beer_from_brewery(brew_id, load_id, req) {
+function remove_beer_from_brewery(brew_id, beer_id, req) {
     // Verify starts at 404 error
     var verify = 1;
-    const b = datastore.createQuery(BREW);
-    const s = datastore.createQuery(LOAD);
+    const b = datastore.createQuery(BREWERY);
+    const s = datastore.createQuery(BEER);
 
     return datastore.runQuery(b).then((entities) => {
 
@@ -294,9 +299,9 @@ function remove_beer_from_brewery(brew_id, load_id, req) {
 
         for (i = 0; i < brewIncludingID.length; i++) {
             if (brew_id === brewIncludingID[i].id) {
-                //verify that load is on brewery
-                for (var j = 0; j < brewIncludingID[i].loads.length; j++) {
-                    if (brewIncludingID[i].loads[j].id === load_id) {
+                //verify that beer is produced at brewery
+                for (var j = 0; j < brewIncludingID[i].beers.length; j++) {
+                    if (brewIncludingID[i].beers[j].id === beer_id) {
                         verify = 3
                     }
                 }
@@ -304,32 +309,32 @@ function remove_beer_from_brewery(brew_id, load_id, req) {
         }
 
         if (verify === 1) {
-            //load is not on the brewery; return 1
+            //beer is not produced at the brewery; return 1
             verify = 1;
             return verify;
         }
 
         const brew_key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
-        const load_key = datastore.key([LOAD, parseInt(load_id, 10)]);
+        const beer_key = datastore.key([BEER, parseInt(beer_id, 10)]);
 
         return datastore.get(brew_key)
             .then((brew) => {
                 var spliceValue;
-                var length = brew[0].loads.length;
+                var length = brew[0].beers.length;
                 for (var i = 0; i < length; i++) {
-                    if (brew[0].loads[i].id === load_id) {
+                    if (brew[0].beers[i].id === beer_id) {
                         spliceValue = i;
                     }
                 }
                 var spliceValue2 = + 1;
-                brew[0].loads.splice(spliceValue, spliceValue2);
+                brew[0].beers.splice(spliceValue, spliceValue2);
 
                 return datastore.save({ "key": brew_key, "data": brew[0] })
                     .then(() => {
-                        return datastore.get(load_key)
-                            .then((load) => {
-                                load[0].carrier.splice(0, 1);
-                                return datastore.save({ "key": load_key, "data": load[0] })
+                        return datastore.get(beer_key)
+                            .then((beer) => {
+                                beer[0].carrier.splice(0, 1);
+                                return datastore.save({ "key": beer_key, "data": beer[0] })
 
                             })
 
@@ -343,9 +348,9 @@ function remove_beer_from_brewery(brew_id, load_id, req) {
 function delete_brewery(id) {
     const brew_key = datastore.key([BREWERY, parseInt(id, 10)]);
     const q = datastore.createQuery(BREWERY);
-    const s = datastore.createQuery(LOAD);
+    const s = datastore.createQuery(BEER);
 
-    var arrayOfLoads = [];
+    var arrayOfBeers = [];
 
     return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
@@ -355,19 +360,18 @@ function delete_brewery(id) {
             if (id == includingID[i].id) {
                 return datastore.get(brew_key)
                     .then((brew) => {
-                        console.log()
-                        var length = brew[0].loads.length;
+                        var length = brew[0].beers.length;
                         for (var i = 0; i < length; i++) {
-                            arrayOfLoads.push(brew[0].loads[i].id);
+                            arrayOfBeers.push(brew[0].beers[i].id);
                         }
                         datastore.delete(brew_key);
 
                         return datastore.runQuery(s).then((entities) => {
-                            for (var i = 0; i < arrayOfLoads.length; i++) {
-                                var count = arrayOfLoads[i];
+                            for (var i = 0; i < arrayOfBeers.length; i++) {
+                                var count = arrayOfBeers[i];
                                 ds.getKey(count)
-                                    .then((load) => {
-                                        datastore.save(load);
+                                    .then((beer) => {
+                                        datastore.save(beer);
                                     })
                             }
                         })
@@ -383,7 +387,7 @@ function get_brewery_beers(brew_id) {
     const key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
     return datastore.get(key)
         .then((brew) => {
-            return brew[0].loads;
+            return brew[0].beers;
         })
 }
 
@@ -403,10 +407,10 @@ router.get('/', function (req, res) {
         });
 });
 
-router.get('/:brew_id/loads', function (req, res) {
+router.get('/:brew_id/beers', function (req, res) {
     get_brewery_beers(req.params.brew_id)
-        .then((loads) => {
-            res.status(200).json(loads);
+        .then((beers) => {
+            res.status(200).json(beers);
         });
 });
 
@@ -416,7 +420,7 @@ router.get('/:id', function (req, res) {
         .then((verify) => {
             if (verify === 1) {
                 return res.status(404).send(
-                    '{ "Error": "No brewery with this brewery_id exists" }');
+                    '{ "Error": "No brewery with this brewery_id exists." }');
             }
             const accepts = req.accepts(['application/json', 'text/html']);
             if (!accepts) {
@@ -630,8 +634,8 @@ router.put('/:id', function (req, res) {
     }
 });
 
-router.put('/:brew_id/loads/:load_id', function (req, res) {
-    add_beer_to_brewery(req.params.brew_id, req.params.load_id, req).then(verify => {
+router.put('/:brew_id/beers/:beer_id', function (req, res) {
+    add_beer_to_brewery(req.params.brew_id, req.params.beer_id, req).then(verify => {
         if (verify === 0) {
             res.status(403).send(
                 '{ "Error": "Failure to load brewery. This beer is already produced at another brewery." }');
@@ -648,11 +652,11 @@ router.put('/:brew_id/loads/:load_id', function (req, res) {
     });
 });
 
-router.delete('/:brew_id/loads/:load_id', function (req, res) {
-    remove_beer_from_brewery(req.params.brew_id, req.params.load_id).then(verify => {
+router.delete('/:brew_id/beers/:beer_id', function (req, res) {
+    remove_beer_from_brewery(req.params.brew_id, req.params.beer_id).then(verify => {
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error": "No beer with this beer_id is produced at the brewery with this brewery_id or brewery with brewery_id does not exist"}');
+                '{ "Error": "No beer with this beer_id is produced at the brewery with this brewery_id or brewery with brewery_id does not exist."}');
         }
         res.status(204).end();
     });
@@ -690,22 +694,22 @@ router.post('/:id', function (req, res) {
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.get('/:brew_id/loads/:load_id', function (req, res) {
+router.get('/:brew_id/beers/:beer_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.post('/:brew_id/loads/:load_id', function (req, res) {
+router.post('/:brew_id/beers/:beer_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.patch('/:brew_id/loads/:load_id', function (req, res) {
+router.patch('/:brew_id/beers/:beer_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });
 
-router.get('/:brew_id/loads/:load_id', function (req, res) {
+router.get('/:brew_id/beers/:beer_id', function (req, res) {
     res.set('Accept', 'DELETE, PUT');
     res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
 });

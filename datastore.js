@@ -12,8 +12,10 @@ module.exports.fromDatastore = function fromDatastore(item){
 }
 module.exports.addSelf = function addSelf(item){
     item.self = this + item.id;
-    if (item.loads === undefined) {
-        item.loads = [];
+    if (item.beers === undefined) {
+        item.beers = [];
+    } else {
+        item.beers = item.beers;
     }
     return item;
 }
@@ -53,8 +55,8 @@ module.exports.validateCity = function validateCity(city) {
     //The passed in string must be between 2 and 33 characters. 
     //TODO: Document that it must contain two chars. 
     var letters = /^[A-Za-z\s]+$/;
-    if(type.match(letters)) {
-        if(type.city > 33 || type.city < 2) {
+    if(city.match(letters)) {
+        if(city.length > 33 || city.length < 2) {
             return false;
         }
         return true;
