@@ -161,42 +161,39 @@ function edit_beer(id, name, style, abv) {
     });
 }
 
-function delete_beer(id) {
-    const beer_key = datastore.key([BEER, parseInt(id, 10)]);
-    const q = datastore.createQuery(BEER);
-    const s = datastore.createQuery(BREWERY);
+function delete_beer(beer_id) {
+    const key = datastore.key([BEER, parseInt(beer_id, 10)]);
+    const s = datastore.createQuery(BEER);
 
-    var arrayOfBrewery = [];
-
-    return datastore.runQuery(q).then((entities) => {
+    return datastore.runQuery(s).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
         var i;
         var verify = 1;
+
         for (i = 0; i < includingID.length; i++) {
-            if (id == includingID[i].id) {
-                return datastore.get(beer_key)
-                    .then((beer) => {
-                        var length = beer[0].brewery.length;
+            if (beer_id == includingID[i].id) {
+                if (includingID[i].brewery.length === 0) {
+                    datastore.delete(key);
+                    return 0;
+                }
+                var brew_id = includingID[i].brewery[0].id;
+                const brew_key = datastore.key([BREWERY, parseInt(brew_id, 10)]);
+                return datastore.get(brew_key)
+                    .then((brew) => {
+                        datastore.delete(key);
+                        var spliceValue;
+                        var length = brew[0].beers.length;
                         for (var i = 0; i < length; i++) {
-                            arrayOfBrewery.push(beer[0].brewery[i].id);
-                        }
-                        // Beer is deleted here
-                        datastore.delete(beer_key);
-                        
-                        // Now we focus on deleting the beer in the brewery
-                        return datastore.runQuery(s).then((entities) => {
-                            for (var i = 0; i < arrayOfBrewery.length; i++) {
-                                var count = arrayOfBrewery[i];
-                                ds.getKey(count)
-                                    .then((brewery) => {
-                                        datastore.save(brewery);
-                                    })
+                            if (brew[0].beers[i].id === beer_id) {
+                                spliceValue = i;
                             }
-                        })
+                        }
+                        var spliceValue2 = + 1;
+                        brew[0].beers.splice(spliceValue, spliceValue2);
+                        return datastore.save({ "key": brew_key, "data": brew[0] })
                     })
             }
         }
-
         return verify;
     });
 }
@@ -446,7 +443,7 @@ router.delete('/:id', function (req, res) {
     delete_beer(req.params.id).then((verify) => {
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error":  "No beer with this beer_id exists" }');
+                '{ "Error":  "No beer with this beer_id exists." }');
         }
         res.status(204).end()
     })

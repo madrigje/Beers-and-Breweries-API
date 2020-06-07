@@ -29,6 +29,7 @@ module.exports.addSelfBeer = function addSelfBeer(item) {
     return item;
 }
 
+// This is used when deleting a brewery
 module.exports.getKey = function getKey(id) {
     var key = datastore.key([BEER, parseInt(id, 10)]);
     return datastore.get(key).then((beer) => {
