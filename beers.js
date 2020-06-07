@@ -1,93 +1,200 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const json2html = require('node-json2html');
 const router = express.Router();
 const ds = require('./datastore');
 
+let transform = {
+    '<>': 'ul', 'html': [
+        { '<>': 'li', 'title': 'id', 'html': '${id}' },
+        { '<>': 'li', 'title': 'name', 'html': '${name}' },
+        { '<>': 'li', 'title': 'style', 'html': '${style}' },
+        { '<>': 'li', 'title': 'abv', 'html': '${abv}' },
+        { '<>': 'li', 'title': 'self', 'html': '${self}' }
+    ]
+};
+
 const datastore = ds.datastore;
 
-const BOAT = "boat";
-const LOAD = "load";
+const BREWERY = "brewery";
+const BEER = "beer";
 
 router.use(bodyParser.json());
 
 /* ------------- Begin Boat Model Functions ------------- */
 
-function post_load(weight, content, delivery_date) {
-    var key = datastore.key(LOAD);
-    var carrier = [];
-    const new_load = { "weight": weight, "carrier": carrier, "content": content, "delivery_date": delivery_date };
-    const entity = { "key": key, "data": new_load };
-    return datastore.save(entity).then(() => { return key });
+function post_beer(name, style, abv) {
+    var key = datastore.key(BEER);
+    const q = datastore.createQuery(BEER);
+    var brewery = [];
+    const new_beer = { "name": name, "style": style, "abv": abv, "brewery": brewery };
+
+    return datastore.runQuery(q).then((entities) => {
+        const includingID = entities[0].map(ds.fromDatastore)
+        var i;
+        var verify = 1;
+        for (i = 0; i < includingID.length; i++) {
+            if (name === includingID[i].name) {
+                return verify;
+            }
+        }
+        return datastore.save({ "key": key, "data": new_beer }).then(() => {
+            return key;
+        });
+    });
 }
 
-function get_loads(req) {
-    var q = datastore.createQuery(LOAD).limit(3).filter('weight', '>', 0);
+function get_beers(req) {
+    var q = datastore.createQuery(BEER).limit(5)
     var results = {};
     if (Object.keys(req.query).includes("cursor")) {
         q = q.start(req.query.cursor);
     }
 
     return datastore.runQuery(q).then((entities) => {
-        results.loads = entities[0].map(ds.fromDatastore);
+        results.beers = entities[0].map(ds.fromDatastore);
         if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
             var end = encodeURIComponent(entities[1].endCursor);
             results.next = req.protocol + "://" + req.get("host") + req.baseUrl + "?cursor=" + end;
         }
+        results.total_count = entities[0].length;
         return results;
     });
 }
 
-function get_load(id) {
-    const q = datastore.createQuery(LOAD);
+function get_beer(id) {
+    const key = datastore.key([BEER, parseInt(id, 10)]);
+    const q = datastore.createQuery(BEER);
 
     return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
         var i;
         var verify = 1;
         for (i = 0; i < includingID.length; i++) {
-            // If the passed in load is equal to one in the LOAD entities, it exists. 
             if (id == includingID[i].id) {
-                const boat = includingID[i];
-                return boat;
+                return includingID[i];
+            }
+            if (verify === 0) {
+                return verify;
+            }
+        }
+
+        return verify;
+    });
+}
+
+// TODO: Must be able to transfer current beers
+function edit_beer(id, name, style, abv) {
+    const key = datastore.key([BEER, parseInt(id, 10)]);
+    const q = datastore.createQuery(BEER);
+
+    return datastore.runQuery(q).then((entities) => {
+        const includingID = entities[0].map(ds.fromDatastore)
+        var i;
+        var verify = 1;
+        for (i = 0; i < includingID.length; i++) {
+            var k;
+            for (k = 0; k < includingID.length; k++) {
+                if (id === includingID[k].id) {
+                    verify = 0;
+                }
+            }
+
+            if (verify !== 0) {
+                //Beer already exists
+                return 1;
+            }
+
+            var j;
+            for (j = 0; j < includingID.length; j++) {
+                if (name === includingID[j].name) {
+                    verify = 2;
+                    if (id === includingID[j].id) {
+                        verify = 0;
+                        return datastore.get(key)
+                            .then((beer) => {
+                                if (name === 0) {
+                                    name = beer[0].name;
+                                }
+                                if (style === 0) {
+                                    style = beer[0].style
+                                }
+                                if (abv === 0) {
+                                    abv = beer[0].abv
+                                }
+                                brewery = beer[0].brewery;
+                                const new_beer = { "name": name, "style": style, "abv": abv, "brewery": brewery };
+                                return datastore.save({ "key": key, "data": new_beer }).
+                                    then(() => {
+                                        return new_beer;
+                                    })
+                            });
+                    }
+                }
+                if (verify === 2) {
+                    return verify;
+                }
+            }
+            if (id == includingID[i].id) {
+                verify = 0;
+                return datastore.get(key)
+                    .then((beer) => {
+                        if (name === 0) {
+                            name = beer[0].name;
+                        }
+                        if (style === 0) {
+                            style = beer[0].style
+                        }
+                        if (abv === 0) {
+                            abv = beer[0].abv
+                        }
+                        brewery = beer[0].brewery;
+                        const new_beer = { "name": name, "style": style, "abv": abv, "brewery": brewery };
+                        return datastore.save({ "key": key, "data": new_beer }).
+                            then(() => {
+                                return new_beer;
+                            })
+                    });
             }
         }
         return verify;
     });
 }
 
-function delete_load(load_id) {
-    const key = datastore.key([LOAD, parseInt(load_id, 10)]);
-    const s = datastore.createQuery(LOAD);
+function delete_beer(id) {
+    const beer_key = datastore.key([BEER, parseInt(id, 10)]);
+    const q = datastore.createQuery(BEER);
+    const s = datastore.createQuery(BREWERY);
 
-    return datastore.runQuery(s).then((entities) => {
+    var arrayOfBrewery = [];
+
+    return datastore.runQuery(q).then((entities) => {
         const includingID = entities[0].map(ds.fromDatastore)
         var i;
         var verify = 1;
-
         for (i = 0; i < includingID.length; i++) {
-            if (load_id == includingID[i].id) {
-                if (includingID[i].carrier.length === 0) {
-                    datastore.delete(key);
-                    return 0;
-                }
-                var boat_id = includingID[i].carrier[0].id;
-                const boat_key = datastore.key([BOAT, parseInt(boat_id, 10)]);
-                return datastore.get(boat_key)
-                    .then((boat) => {
-                        datastore.delete(key);
-                        var spliceValue;
-                        var length = boat[0].loads.length;
+            if (id == includingID[i].id) {
+                return datastore.get(beer_key)
+                    .then((beer) => {
+                        var length = beer[0].brewery.length;
                         for (var i = 0; i < length; i++) {
-                            if (boat[0].loads[i].id === load_id) {
-                                spliceValue = i;
-                            }
+                            arrayOfBrewery.push(brew[0].brewery[i].id);
                         }
-                        var spliceValue2 = + 1;
-                        boat[0].loads.splice(spliceValue, spliceValue2);
-                        return datastore.save({ "key": boat_key, "data": boat[0] })
+                        datastore.delete(beer_key);
+
+                        return datastore.runQuery(s).then((entities) => {
+                            for (var i = 0; i < arrayOfBrewery.length; i++) {
+                                var count = arrayOfBrewery[i];
+                                ds.getKey(count)
+                                    .then((brewery) => {
+                                        datastore.save(brewery);
+                                    })
+                            }
+                        })
                     })
             }
         }
+
         return verify;
     });
 }
@@ -97,56 +204,273 @@ function delete_load(load_id) {
 /* ------------- Begin Controller Functions ------------- */
 
 router.get('/', function (req, res) {
-    get_loads(req)
-        .then((loads) => {
+    get_beers(req)
+        .then((beers) => {
             var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/';
-            loads.loads.map(ds.addSelfLoad, self);
-            res.status(200).json(loads);
+            beers.beers.map(ds.addSelfBeer, self);
+            res.status(200).json(beers);
         });
 });
 
 router.get('/:id', function (req, res) {
-    get_load(req.params.id)
-        .then(verify => {
+    get_beer(req.params.id)
+        .then((verify) => {
             if (verify === 1) {
                 return res.status(404).send(
-                    '{ "Error": "No load with this load_id exists" }');
+                    '{ "Error": "No beer with this beer_id exists." }');
             }
-            var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-            var carrier = verify.carrier
-            if (carrier === undefined) {
-                carrier = null;
+            const accepts = req.accepts(['application/json', 'text/html']);
+            if (!accepts) {
+                res.status(406).send('{ "Error": "The server can only send JSON or HTML back to you." }');
+            } else if (accepts === 'application/json') {
+                var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
+                var obj = { id: verify.id, name: verify.name, style: verify.style, abv: verify.abv, brewery: verify.brewery, self: self };
+                res.status(200).json(obj);
+            } else if (accepts === 'text/html') {
+                // ACTION: Must add brewery here if I want to keep this.
+                var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
+                var obj = { id: verify.id, name: verify.name, style: verify.style, abv: verify.abv, self: self };
+                const html = json2html.transform([obj], transform);
+                res.status(200).send(html);
             }
-            var obj = { id: req.params.id, weight: verify.weight, carrier: carrier, content: verify.content, delivery_date: verify.delivery_date, self: self };
-            res.status(200).json(obj);
         });
 });
 
 router.post('/', function (req, res) {
-    if (req.body.weight === undefined || req.body.content === undefined || req.body.delivery_date === undefined) {
+
+    if (Object.keys(req.body).length > 3) {
+        return res.status(400).send('{ "Error": "Name, style, and abv are the only allowed attributes." }');
+    }
+    if ((req.get('content-type') !== 'application/json')) {
+        return res.status(415).send(
+            '{ "Error": "I’m sorry, we only accept JSON here." }');
+    }
+
+    if ((req.get('accept') !== 'application/json')) {
+        return res.status(406).send(
+            '{ "Error": "The server can only send JSON back to you." }');
+    }
+    if (req.body.name === undefined || req.body.style === undefined || req.body.abv === undefined) {
         return res.status(400).send(
-            '{ "Error": "The request object is missing the required number" }');
+            '{ "Error": "The request object is missing at least one of the required attributes." }');
+    }
+
+    // ACTION: Create proper validation functions. 
+    var valName = ds.validateName(req.body.name);
+    var valStyle = ds.validateName(req.body.style);
+    var valABV = true;
+
+    if (!valName || !valStyle || !valABV) {
+        return res.status(400).send(
+            '{ "Error": "One or more of the requested attributes are invalid." }');
     } else {
 
-        post_load(req.body.weight, req.body.content, req.body.delivery_date)
-            .then(key => {
+        post_beer(req.body.name, req.body.style, req.body.abv)
+            .then((key) => {
+                if (key === 1) {
+                    return res.status(403).send('{ "Error": "Name requested already exists for another beer." }');
+                }
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + key.id;
-                var carrier = [];
-                var obj = { id: key.id, weight: req.body.weight, carrier: carrier, content: req.body.content, delivery_date: req.body.delivery_date, self: self };
+                var brewery = [];
+                var obj = { id: key.id, name: req.body.name, style: req.body.style, abv: req.body.abv, brewery: brewery, self: self };
+                res.location(self);
                 res.status(201).json(obj);
             });
     }
 });
 
+router.patch('/:id', function (req, res) {
+
+    var valName = true;
+    var valStyle = true;
+    var valABV = true;
+
+    var id = req.body.id;
+    var name = req.body.name;
+    var style = req.body.style;
+    var abv = req.body.abv;
+
+    if (name === undefined) {
+        name = 0;
+    }
+    if (style === undefined) {
+        style = 0;
+    }
+    if (abv === undefined) {
+        abv = 0;
+    }
+    if (id !== undefined) {
+        return res.status(400).send(
+            '{ "Error": "ID cannot be manipulated." }');
+    }
+    // Action: Ensure this error code is correct (PROBABLY NOT)
+    if (Object.keys(req.body).length > 3) {
+        return res.status(400).send('{ "Error": "Name requested already exists for another beer" }');
+    }
+
+    if ((req.get('content-type') !== 'application/json')) {
+        return res.status(415).send(
+            '{ "Error": "I’m sorry, we only accept JSON here." }');
+    }
+
+    if ((req.get('accept') !== 'application/json')) {
+        return res.status(406).send(
+            '{ "Error": "The server can only send JSON back to you." }');
+    }
+
+    if (req.body.name === undefined) {
+        if (req.body.style === undefined) {
+            if (req.body.abv === undefined) {
+                return res.status(400).send(
+                    '{ "Error": "Request object must contain at least one of the three beer attributes."}');
+            } else {
+                //ACTION
+                //valABV = ds.validateABV(req.body.abv);
+                valABV = true
+            }
+        } else {
+            valStyle = ds.validateName(req.body.style);
+            if (req.body.abv !== undefined) {
+                //ACTION
+                //valABV = ds.validateABV(req.body.abv);
+                valABV = true
+            }
+        }
+    } else if (req.body.style === undefined) {
+        if (req.body.abv === undefined) {
+            valName = ds.validateName(req.body.name);
+        } else {
+            valName = ds.validateName(req.body.name);
+            //ACTION
+            //valABV = ds.validateABV(req.body.abv);
+            valABV = true
+        }
+    } else if (req.body.abv === undefined) {
+        valName = ds.validateName(req.body.name);
+        valStyle = ds.validateName(req.body.style);
+    } else {
+        valName = ds.validateName(req.body.name);
+        valStyle = ds.validateName(req.body.style);
+        //ACTION
+        //valABV = ds.validateABV(req.body.abv);
+        valABV = true
+    }
+
+
+    if (!valName || !valABV || !valStyle) {
+        return res.status(400).send(
+            '{ "Error": "One or more of the requested attributes are invalid." }');
+    }
+
+
+    edit_beer(req.params.id, name, style, abv)
+        .then(verify => {
+            if (verify === 1) {
+                return res.status(404).send(
+                    '{ "Error": "No beer with this beer_id exists"}');
+            }
+            if (verify === 2) {
+                return res.status(403).send(
+                    '{ "Error": "Name requested already exists for another beer." }');
+            }
+            //ACTION: Verify beers is good in this context. 
+            var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
+            var obj = { id: req.params.id, name: verify.name, style: verify.style, abv: verify.abv, brewery: verify.brewery, self: self };
+            res.status(201).json(obj);
+        });
+});
+
+// ADDED AND UPDATED
+router.put('/:id', function (req, res) {
+
+    var id = req.body.id;
+    var name = req.body.name;
+    var style = req.body.style;
+    var abv = req.body.abv;
+
+    if ((req.get('content-type') !== 'application/json')) {
+        return res.status(415).send(
+            '{ "Error": "I’m sorry, we only accept JSON here." }');
+    }
+
+    if ((req.get('accept') !== 'application/json')) {
+        return res.status(406).send(
+            '{ "Error": "The server can only send JSON back to you." }');
+    }
+
+    if (id !== undefined) {
+        return res.status(400).send(
+            '{ "Error": "ID cannot be manipulated." }');
+    }
+
+    if (name === undefined || style === undefined || abv === undefined) {
+        return res.status(400).send(
+            '{ "Error": "The request object is missing at least one of the required attributes." }');
+    }
+
+    if (Object.keys(req.body).length > 3) {
+        return res.status(400).send('{ "Error": "Name, style, and abv are the only allowed attributes." }');
+    }
+
+    var valName = ds.validateName(req.body.name);
+    var valStyle = ds.validateName(req.body.style);
+    //ACTION
+    //var valABV = ds.validateABV(req.body.abv);
+    var valABV = true;
+
+    if (!valName || !valStyle || !valABV) {
+        return res.status(400).send(
+            '{ "Error": "One or more of the requested attributes are invalid." }');
+    } else {
+        edit_brewery(req.params.id, req.body.name, req.body.style, req.body.abv)
+            .then(verify => {
+                if (verify === 1) {
+                    return res.status(404).send(
+                        '{ "Error": "No beer with this beer_id exists"}');
+                }
+                if (verify === 2) {
+                    return res.status(403).send(
+                        '{ "Error": "Name requested already exists for another beer." }');
+                }
+                var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
+                res.location(self);
+                res.status(303).send(
+                    '{ "Success": "Make a GET request to the location specified in the Location header of the response." }');
+            });
+    }
+});
+
 router.delete('/:id', function (req, res) {
-    delete_load(req.params.id).then((verify) => {
+    delete_beer(req.params.id).then((verify) => {
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error":  "No load with this load_id exists" }');
+                '{ "Error":  "No beer with this beer_id exists" }');
         }
         res.status(204).end()
     })
 });
+
+/* ------------- IMPROPER HTTP VERBS ------------- */
+router.put('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.patch('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.delete('/', function (req, res) {
+    res.set('Accept', 'GET, POST');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+
+router.post('/:id', function (req, res) {
+    res.set('Accept', 'GET, PUT, PATCH, DELETE');
+    res.status(405).send('{ "Error": "That HTTP verb is not allowed with this URL." }');
+});
+/* ------------- IMPROPER HTTP VERBS ------------- */
 
 /* ------------- End Controller Functions ------------- */
 

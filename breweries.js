@@ -127,7 +127,6 @@ function edit_brewery(id, name, city, state) {
                                     state = brewery[0].state
                                 }
                                 beers = brewery[0].beers;
-                                console.log('beers: ' + brewery[0].beers);
                                 const new_brewery = { "name": name, "city": city, "state": state, "beers": beers };
                                 return datastore.save({ "key": key, "data": new_brewery }).
                                     then(() => {
@@ -154,7 +153,6 @@ function edit_brewery(id, name, city, state) {
                             state = brewery[0].state
                         }
                         beers = brewery[0].beers;
-                        console.log('next beers: ' + brewery[0].beers);
                         const new_brewery = { "name": name, "city": city, "state": state, "beers": beers };
                         return datastore.save({ "key": key, "data": new_brewery }).
                             then(() => {

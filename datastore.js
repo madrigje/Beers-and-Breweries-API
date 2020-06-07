@@ -20,10 +20,14 @@ module.exports.addSelf = function addSelf(item){
     return item;
 }
 
-module.exports.addSelfLoad = function addSelfLoad(item) {
+module.exports.addSelfBeer = function addSelfBeer(item) {
     item.self = this + item.id;
+    if (item.brewery === undefined) {
+        item.brewery = [];
+    }
     return item;
 }
+
 //TODO: May not be needed for Assignment 5 
 module.exports.getKey = function getKey(id) {
     var key = datastore.key([LOAD, parseInt(id, 10)]);
