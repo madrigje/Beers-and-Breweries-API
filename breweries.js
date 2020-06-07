@@ -203,13 +203,13 @@ function add_beer_to_brewery(brew_id, beer_id, req) {
                 }
             }
 
-            // Well, we now know that the slip doesnt exist
+            // Well, we now know that the beer doesnt exist
             if (verify === 1) { return verify; }
 
             // Find out if this beer is on another brewery.
             for (i = 0; i < includingID.length; i++) {
                 if (includingID[i].id === beer_id) {
-                    if (includingID[i].carrier[0] === undefined) {
+                    if (includingID[i].brewery[0] === undefined) {
                         break;
                     } else {
                         return 0;
@@ -234,7 +234,7 @@ function add_beer_to_brewery(brew_id, beer_id, req) {
             
             // ACTION: Check for name change here. 
             for (i = 0; i < includingID.length; i++) {
-                if (bber_id == includingID[i].id) {
+                if (beer_id == includingID[i].id) {
                     self = req.protocol + '://' + req.get("host") + '/breweries/' + brew_id;
                     results.self = self;
                     results.name = brewName;
@@ -252,7 +252,7 @@ function add_beer_to_brewery(brew_id, beer_id, req) {
                         beer[0].brewery = [];
                     }
                     results.id = brew_id;
-                    beer[0].carrier.push(results);
+                    beer[0].brewery.push(results);
                     return datastore.save({ "key": beer_key, "data": beer[0] })
                         .then(() => {
                             return datastore.get(brew_key)
@@ -261,6 +261,7 @@ function add_beer_to_brewery(brew_id, beer_id, req) {
                                         brew[0].beers = [];
                                     }
                                     beerResults.id = beer_id;
+                                    //beerResults.name = 
                                     brew[0].beers.push(beerResults);
                                     return datastore.save({ "key": brew_key, "data": brew[0] });
                                 })
@@ -331,7 +332,7 @@ function remove_beer_from_brewery(brew_id, beer_id, req) {
                     .then(() => {
                         return datastore.get(beer_key)
                             .then((beer) => {
-                                beer[0].carrier.splice(0, 1);
+                                beer[0].brewery.splice(0, 1);
                                 return datastore.save({ "key": beer_key, "data": beer[0] })
 
                             })
@@ -640,7 +641,7 @@ router.put('/:brew_id/beers/:beer_id', function (req, res) {
         }
         if (verify === 1) {
             res.status(404).send(
-                '{ "Error": "The specified brewery and/or beer do not exist" }');
+                '{ "Error": "The specified brewery and/or beer do not exist." }');
         }
         if (verify === 2) {
             res.status(403).send(

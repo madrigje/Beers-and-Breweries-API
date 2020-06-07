@@ -178,10 +178,12 @@ function delete_beer(id) {
                     .then((beer) => {
                         var length = beer[0].brewery.length;
                         for (var i = 0; i < length; i++) {
-                            arrayOfBrewery.push(brew[0].brewery[i].id);
+                            arrayOfBrewery.push(beer[0].brewery[i].id);
                         }
+                        // Beer is deleted here
                         datastore.delete(beer_key);
-
+                        
+                        // Now we focus on deleting the beer in the brewery
                         return datastore.runQuery(s).then((entities) => {
                             for (var i = 0; i < arrayOfBrewery.length; i++) {
                                 var count = arrayOfBrewery[i];
@@ -422,7 +424,7 @@ router.put('/:id', function (req, res) {
         return res.status(400).send(
             '{ "Error": "One or more of the requested attributes are invalid." }');
     } else {
-        edit_brewery(req.params.id, req.body.name, req.body.style, req.body.abv)
+        edit_beer(req.params.id, req.body.name, req.body.style, req.body.abv)
             .then(verify => {
                 if (verify === 1) {
                     return res.status(404).send(

@@ -2,6 +2,7 @@
 const { Datastore } = require('@google-cloud/datastore');
 
 const projectID = 'final-madrigje';
+const BEER = "beer";
 
 module.exports.Datastore = Datastore;
 //Q: Why is projectID included here?
@@ -28,12 +29,11 @@ module.exports.addSelfBeer = function addSelfBeer(item) {
     return item;
 }
 
-//TODO: May not be needed for Assignment 5 
 module.exports.getKey = function getKey(id) {
-    var key = datastore.key([LOAD, parseInt(id, 10)]);
-    return datastore.get(key).then((load) => {
-        load[0].carrier.splice(0, 1);
-        const entity = { "key": key, "data": load[0] };
+    var key = datastore.key([BEER, parseInt(id, 10)]);
+    return datastore.get(key).then((beer) => {
+        beer[0].brewery.splice(0, 1);
+        const entity = { "key": key, "data": beer[0] };
         return entity;
     });
 }
