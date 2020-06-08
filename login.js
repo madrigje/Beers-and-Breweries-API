@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 var jwt_decode = require('jwt-decode');
-//const json2html = require('node-json2html');
 const path = require(`path`);
 const ds = require('./datastore');
 const datastore = ds.datastore;
@@ -65,9 +64,11 @@ app.post('/', function (req, res) {
                 if (error) {
                     res.status(500).send(error);
                 } else {
+                    var token = response.body.id_token;
+                    var decoded;
                     if (response.body.id_token) {
                         var token = response.body.id_token;
-                        var decoded = jwt_decode(token);
+                        decoded = jwt_decode(token);
                         var verify = 0;
 
                         var key = datastore.key(USER);
@@ -78,7 +79,6 @@ app.post('/', function (req, res) {
                             var i;
                             for(i=0; i < includingID.length; i++) {
                                 if (decoded.sub == includingID[i].unique_id) {
-                                    console.log("already exists");
                                     verify = 1;
                                 }
                             }
@@ -88,23 +88,24 @@ app.post('/', function (req, res) {
                             } 
                         });
                     }
-                    res.render('index', {
-                        title: 'User Info',
-                        jwt: response.body.id_token,
-                        sub: decoded.sub
-                    })
+                    if(!decoded) {
+                        res.render('index', {
+                            title: 'User Info',
+                            jwt: response.body.id_token,
+                            sub: 'Invalid Login'
+                        })
+                    } else {
+                        res.render('index', {
+                            title: 'User Info',
+                            jwt: response.body.id_token,
+                            sub: decoded.sub
+                        })
+                    }
                 }
             });
         }
     });
 });
-
-function get_boats() {
-    const q = datastore.createQuery(BOAT);
-    return datastore.runQuery(q).then((entities) => {
-        return entities[0].map(fromDatastore);
-    });
-}
 
 /* ------------- End Controller Functions ------------- */
 

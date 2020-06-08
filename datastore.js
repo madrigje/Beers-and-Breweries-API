@@ -41,7 +41,6 @@ module.exports.getKey = function getKey(id) {
 module.exports.validateName = function validateName(name) {
     //I've allowed spaces and absolutely no numbers
     //The passed in string must be between 2 and 33 characters. 
-    //TODO: Document that it must contain two chars. 
     var letters = /^[A-Za-z\s]+$/;
     if(name.match(letters)) {
         if(name.length > 33 || name.length < 2) {
@@ -57,7 +56,6 @@ module.exports.validateName = function validateName(name) {
 module.exports.validateCity = function validateCity(city) {
     //I've allowed spaces and absolutely no numbers
     //The passed in string must be between 2 and 33 characters. 
-    //TODO: Document that it must contain two chars. 
     var letters = /^[A-Za-z\s]+$/;
     if(city.match(letters)) {
         if(city.length > 33 || city.length < 2) {

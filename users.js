@@ -26,7 +26,8 @@ router.get('/', function(req, res){
         const accepts = req.accepts(['application/json']);
 
         if(!accepts){
-            res.status(406).send('Not Acceptable');
+            return res.status(406).send(
+                '{ "Error": "The server can only send JSON back to you." }');
         } else if(accepts === 'application/json'){
             res.status(200).json(boats);
         } else { res.status(500).send('Content type got messed up!'); }

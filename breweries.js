@@ -1,21 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const json2html = require('node-json2html');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
 const router = express.Router();
 const ds = require('./datastore');
-
-// ACTION: Should add beer capabilites OR just remove this. 
-let transform = {
-    '<>': 'ul', 'html': [
-        { '<>': 'li', 'title': 'id', 'html': '${id}' },
-        { '<>': 'li', 'title': 'name', 'html': '${name}' },
-        { '<>': 'li', 'title': 'city', 'html': '${city}' },
-        { '<>': 'li', 'title': 'state', 'html': '${state}' },
-        { '<>': 'li', 'title': 'self', 'html': '${self}' }
-    ]
-};
 
 const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
@@ -39,7 +27,6 @@ router.use(bodyParser.json());
 
 /* ------------- Begin Brewery Model Functions ------------- */
 
-// UPDATED
 function post_brewery(name, city, state, user) {
     var key = datastore.key(BREWERY);
     const q = datastore.createQuery(BREWERY);
@@ -61,7 +48,6 @@ function post_brewery(name, city, state, user) {
     });
 }
 
-// NO CHANGES YET
 function get_breweries(req) {
     var q = datastore.createQuery(BREWERY).limit(5);
     var results = {};
@@ -80,7 +66,6 @@ function get_breweries(req) {
     });
 }
 
-// NO CHANGES
 function get_brewery(id, sub) {
     const key = datastore.key([BREWERY, parseInt(id, 10)]);
     const q = datastore.createQuery(BREWERY);
@@ -102,7 +87,6 @@ function get_brewery(id, sub) {
     });
 }
 
-// TODO: Must be able to transfer current beers
 function edit_brewery(id, name, city, state, user) {
     const key = datastore.key([BREWERY, parseInt(id, 10)]);
     const q = datastore.createQuery(BREWERY);
@@ -256,7 +240,6 @@ function add_beer_to_brewery(brew_id, beer_id, req) {
             var selfBeers = req.protocol + '://' + req.get("host") + '/beers/' + beer_id;
             beerResults.self = selfBeers;
             
-            // ACTION: Check for name change here. 
             for (i = 0; i < includingID.length; i++) {
                 if (beer_id == includingID[i].id) {
                     self = req.protocol + '://' + req.get("host") + '/breweries/' + brew_id;
@@ -367,7 +350,6 @@ function remove_beer_from_brewery(brew_id, beer_id, req) {
 
 }
 
-// NO CHANGES
 function delete_brewery(id, user) {
     const brew_key = datastore.key([BREWERY, parseInt(id, 10)]);
     const q = datastore.createQuery(BREWERY);
@@ -422,7 +404,6 @@ function get_brewery_beers(brew_id) {
 
 /* ------------- Begin Controller Functions ------------- */
 
-// NO CHANGES YET
 router.get('/', checkJwt, function (req, res) {
     // Change breweries here. 
     get_breweries(req)
@@ -433,7 +414,6 @@ router.get('/', checkJwt, function (req, res) {
         });
 });
 
-// ACTION: You dont need it. Delete this. 
 router.get('/:brew_id/beers', function (req, res) {
     get_brewery_beers(req.params.brew_id)
         .then((beers) => {
@@ -441,7 +421,6 @@ router.get('/:brew_id/beers', function (req, res) {
         });
 });
 
-// UPDATED
 router.get('/:id', checkJwt, function (req, res) {
     get_brewery(req.params.id, req.user.sub)
         .then((verify) => {
@@ -449,9 +428,9 @@ router.get('/:id', checkJwt, function (req, res) {
                 return res.status(404).send(
                     '{ "Error": "No brewery with this brewery_id exists." }');
             }
-            const accepts = req.accepts(['application/json', 'text/html']);
+            const accepts = req.accepts(['application/json']);
             if (!accepts) {
-                res.status(406).send('{ "Error": "The server can only send JSON or HTML back to you." }');
+                res.status(406).send('{ "Error": "The server can only send JSON back to you." }');
             } else if (accepts === 'application/json') {
                 if (verify === 2) {
                     return res.status(401).send(
@@ -460,21 +439,10 @@ router.get('/:id', checkJwt, function (req, res) {
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
                 var obj = { id: verify.id, name: verify.name, city: verify.city, state: verify.state, beers: verify.beers, user: verify.user, self: self };
                 res.status(200).json(obj);
-            } else if (accepts === 'text/html') {
-                if (verify === 2) {
-                    return res.status(401).send(
-                        '{ "Error": "You are not authorized to see this information."  }');
-                }
-                // ACTION: Must add beers here if I want to keep this.
-                var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-                var obj = { id: verify.id, name: verify.name, city: verify.city, state: verify.state, self: self };
-                const html = json2html.transform([obj], transform);
-                res.status(200).send(html);
-            }
+            } 
         });
 });
 
-// UPDATED
 router.post('/', checkJwt, function (req, res) {
 
     if (Object.keys(req.body).length > 3) {
@@ -517,7 +485,6 @@ router.post('/', checkJwt, function (req, res) {
     }
 });
 
-// ADDED AND UPDATED
 router.patch('/:id', checkJwt, function (req, res) {
 
     var valName = true;
@@ -542,7 +509,7 @@ router.patch('/:id', checkJwt, function (req, res) {
         return res.status(400).send(
             '{ "Error": "ID cannot be manipulated." }');
     }
-    // Action: Ensure this error code is correct (PROBABLY NOT)
+
     if (Object.keys(req.body).length > 3) {
         return res.status(400).send('{ "Error": "Name requested already exists for another brewery" }');
     }
@@ -608,14 +575,12 @@ router.patch('/:id', checkJwt, function (req, res) {
                 return res.status(401).send(
                     '{ "Error": "You are unauthorized to edit this brewery." }');
             }
-            //ACTION: Verify beers is good in this context. 
             var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
             var obj = { id: req.params.id, name: verify.name, city: verify.city, state: verify.state, beers: verify.beers, user: verify.user, self: self };
             res.status(201).json(obj);
         });
 });
 
-// ADDED AND UPDATED
 router.put('/:id', checkJwt, function (req, res) {
 
     var id = req.body.id;
@@ -705,7 +670,6 @@ router.delete('/:brew_id/beers/:beer_id', function (req, res) {
     });
 });
 
-// NO CHANGES
 router.delete('/:id', checkJwt, function (req, res) {
     delete_brewery(req.params.id, req.user.sub).then((verify) => {
         if (verify === 1) {

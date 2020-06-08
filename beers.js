@@ -1,18 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const json2html = require('node-json2html');
 const router = express.Router();
 const ds = require('./datastore');
-
-let transform = {
-    '<>': 'ul', 'html': [
-        { '<>': 'li', 'title': 'id', 'html': '${id}' },
-        { '<>': 'li', 'title': 'name', 'html': '${name}' },
-        { '<>': 'li', 'title': 'style', 'html': '${style}' },
-        { '<>': 'li', 'title': 'abv', 'html': '${abv}' },
-        { '<>': 'li', 'title': 'self', 'html': '${self}' }
-    ]
-};
 
 const datastore = ds.datastore;
 
@@ -83,7 +72,6 @@ function get_beer(id) {
     });
 }
 
-// TODO: Must be able to transfer current beers
 function edit_beer(id, name, style, abv) {
     const key = datastore.key([BEER, parseInt(id, 10)]);
     const q = datastore.createQuery(BEER);
@@ -218,20 +206,14 @@ router.get('/:id', function (req, res) {
                 return res.status(404).send(
                     '{ "Error": "No beer with this beer_id exists." }');
             }
-            const accepts = req.accepts(['application/json', 'text/html']);
+            const accepts = req.accepts(['application/json']);
             if (!accepts) {
-                res.status(406).send('{ "Error": "The server can only send JSON or HTML back to you." }');
+                res.status(406).send('{ "Error": "The server can only send JSON back to you." }');
             } else if (accepts === 'application/json') {
                 var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
                 var obj = { id: verify.id, name: verify.name, style: verify.style, abv: verify.abv, brewery: verify.brewery, self: self };
                 res.status(200).json(obj);
-            } else if (accepts === 'text/html') {
-                // ACTION: Must add brewery here if I want to keep this.
-                var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
-                var obj = { id: verify.id, name: verify.name, style: verify.style, abv: verify.abv, self: self };
-                const html = json2html.transform([obj], transform);
-                res.status(200).send(html);
-            }
+            } 
         });
 });
 
@@ -254,7 +236,6 @@ router.post('/', function (req, res) {
             '{ "Error": "The request object is missing at least one of the required attributes." }');
     }
 
-    // ACTION: Create proper validation functions. 
     var valName = ds.validateName(req.body.name);
     var valStyle = ds.validateName(req.body.style);
     var valABV = true;
@@ -302,7 +283,7 @@ router.patch('/:id', function (req, res) {
         return res.status(400).send(
             '{ "Error": "ID cannot be manipulated." }');
     }
-    // Action: Ensure this error code is correct (PROBABLY NOT)
+
     if (Object.keys(req.body).length > 3) {
         return res.status(400).send('{ "Error": "Name requested already exists for another beer" }');
     }
@@ -323,15 +304,11 @@ router.patch('/:id', function (req, res) {
                 return res.status(400).send(
                     '{ "Error": "Request object must contain at least one of the three beer attributes."}');
             } else {
-                //ACTION
-                //valABV = ds.validateABV(req.body.abv);
                 valABV = true
             }
         } else {
             valStyle = ds.validateName(req.body.style);
             if (req.body.abv !== undefined) {
-                //ACTION
-                //valABV = ds.validateABV(req.body.abv);
                 valABV = true
             }
         }
@@ -340,8 +317,6 @@ router.patch('/:id', function (req, res) {
             valName = ds.validateName(req.body.name);
         } else {
             valName = ds.validateName(req.body.name);
-            //ACTION
-            //valABV = ds.validateABV(req.body.abv);
             valABV = true
         }
     } else if (req.body.abv === undefined) {
@@ -350,8 +325,6 @@ router.patch('/:id', function (req, res) {
     } else {
         valName = ds.validateName(req.body.name);
         valStyle = ds.validateName(req.body.style);
-        //ACTION
-        //valABV = ds.validateABV(req.body.abv);
         valABV = true
     }
 
@@ -372,14 +345,12 @@ router.patch('/:id', function (req, res) {
                 return res.status(403).send(
                     '{ "Error": "Name requested already exists for another beer." }');
             }
-            //ACTION: Verify beers is good in this context. 
             var self = req.protocol + '://' + req.get("host") + req.baseUrl + '/' + req.params.id;
             var obj = { id: req.params.id, name: verify.name, style: verify.style, abv: verify.abv, brewery: verify.brewery, self: self };
             res.status(201).json(obj);
         });
 });
 
-// ADDED AND UPDATED
 router.put('/:id', function (req, res) {
 
     var id = req.body.id;
@@ -413,8 +384,6 @@ router.put('/:id', function (req, res) {
 
     var valName = ds.validateName(req.body.name);
     var valStyle = ds.validateName(req.body.style);
-    //ACTION
-    //var valABV = ds.validateABV(req.body.abv);
     var valABV = true;
 
     if (!valName || !valStyle || !valABV) {
