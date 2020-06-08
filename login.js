@@ -8,6 +8,7 @@ const datastore = ds.datastore;
 const USER = "user";
 
 const app = express();
+app.enable('trust proxy');
 app.set('view engine', 'pug');
 app.engine('pug', require('pug').__express);
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -69,7 +70,7 @@ app.post('/', function (req, res) {
                     if (response.body.id_token) {
                         var token = response.body.id_token;
                         decoded = jwt_decode(token);
-                        var verify = 0;
+                        var verify = 1;
 
                         var key = datastore.key(USER);
                         const q = datastore.createQuery(USER);
@@ -79,10 +80,10 @@ app.post('/', function (req, res) {
                             var i;
                             for(i=0; i < includingID.length; i++) {
                                 if (decoded.sub == includingID[i].unique_id) {
-                                    verify = 1;
+                                    verify = 0;
                                 }
                             }
-                            if(verify === 0) {
+                            if(verify === 1) {
                                 const new_user = { "unique_id": decoded.sub };
                                 datastore.save({ "key": key, "data": new_user });
                             } 
