@@ -2,8 +2,10 @@ html
   head
     title= title
   body
-    table(style='width:50%', border='1')
+    table(style='width:25%', border='1')
         tr
-            th(colspan='6') JWT
+            th User ID
+            th JWT
         tr
+            td= sub
             td= jwt
