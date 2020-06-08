@@ -1,12 +1,11 @@
-//Q: Why is the const variable Datastore in brackets here?
 const { Datastore } = require('@google-cloud/datastore');
 
 const projectID = 'final-madrigje';
 const BEER = "beer";
 
 module.exports.Datastore = Datastore;
-//Q: Why is projectID included here?
 module.exports.datastore = new Datastore({projectID:projectID});
+
 module.exports.fromDatastore = function fromDatastore(item){
     item.id = item[Datastore.KEY].id; 
     return item;

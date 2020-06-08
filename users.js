@@ -23,7 +23,7 @@ function get_users(){
 router.get('/', function(req, res){
     get_users()
 	.then( (boats) => {
-        const accepts = req.accepts(['application/json', 'text/html']);
+        const accepts = req.accepts(['application/json']);
 
         if(!accepts){
             res.status(406).send('Not Acceptable');
